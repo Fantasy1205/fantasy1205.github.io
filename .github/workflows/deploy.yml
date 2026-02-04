@@ -18,6 +18,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # 显式使用默认 Token，防止某些环境报错
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -33,10 +36,9 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y imagemagick  # 修复 convert: not found 错误
-          pip install jupyter nbconvert bibtexparser # 修复 jupyter 错误
+          sudo apt-get install -y imagemagick
+          pip install jupyter nbconvert bibtexparser
 
-      # 特别修复：ImageMagick 的安全策略有时会拦截 PDF/WebP 转换
       - name: Configure ImageMagick Policy
         run: |
           sudo sed -i 's/policy domain="coder" rights="none" pattern="PDF"/policy domain="coder" rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml

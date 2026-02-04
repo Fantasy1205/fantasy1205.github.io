@@ -5,10 +5,6 @@ on:
     branches:
       - master
       - main
-  pull_request:
-    branches:
-      - master
-      - main
   workflow_dispatch:
 
 permissions:
@@ -22,25 +18,39 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2.2'
           bundler-cache: true
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Install dependencies
+
+      - name: Install System Dependencies
         run: |
-          pip install bibtexparser
+          sudo apt-get update
+          sudo apt-get install -y imagemagick  # 修复 convert: not found 错误
+          pip install jupyter nbconvert bibtexparser # 修复 jupyter 错误
+
+      # 特别修复：ImageMagick 的安全策略有时会拦截 PDF/WebP 转换
+      - name: Configure ImageMagick Policy
+        run: |
+          sudo sed -i 's/policy domain="coder" rights="none" pattern="PDF"/policy domain="coder" rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
+
       - name: Build site
         run: |
+          export JEKYLL_ENV=production
           bundle exec jekyll build
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./_site
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

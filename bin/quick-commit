@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+USAGE_MSG="usage: quick-commit [-m|--message <commit message>] [--no-push]"
+
+COMMIT_MESSAGE=""
+NO_PUSH="false"
+
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case "$key" in
+    -h|--help)
+      echo "$USAGE_MSG"
+      exit 0
+      ;;
+    -m|--message)
+      COMMIT_MESSAGE="$2"
+      shift
+      ;;
+    --no-push)
+      NO_PUSH="true"
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      echo "$USAGE_MSG" >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "Not inside a git repository." >&2
+  exit 1
+fi
+
+if [[ -z "$(git status --porcelain)" ]]; then
+  echo "No changes to commit."
+  exit 0
+fi
+
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+if [[ "$CURRENT_BRANCH" == "HEAD" ]]; then
+  echo "Detached HEAD detected. Please checkout a branch first." >&2
+  exit 1
+fi
+
+if [[ -z "$COMMIT_MESSAGE" ]]; then
+  COMMIT_MESSAGE="chore: update site content ($(date '+%Y-%m-%d %H:%M:%S'))"
+fi
+
+git add -A
+git commit -m "$COMMIT_MESSAGE"
+
+if [[ "$NO_PUSH" == "false" ]]; then
+  git push origin "$CURRENT_BRANCH"
+  echo "Committed and pushed to origin/$CURRENT_BRANCH"
+else
+  echo "Committed locally on $CURRENT_BRANCH (push skipped)."
+fi
